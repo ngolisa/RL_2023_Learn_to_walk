@@ -58,39 +58,70 @@ class DQNAgent(Agent):
         """
         self.net = model.DQN(obs_size, action_size)
         self.opt = torch.optim.Adam(params=self.net.parameters(), lr=CFG.learning_rate)
+        self.target = model.DQN(obs_size, action_size)
+        self.target.load_state_dict(self.net.state_dict())
+        self.time_step = 0
 
 
-    def set(self, obs_old, act, rwd, obs_new):
+    def get(self, obs_new, act_space, evaluating=False):
         """
-        Learn from one step
+        Next action selection
         """
-        obs_old = torch.tensor(obs_old)
-        obs_new = torch.tensor(obs_new)
+        if evaluating:
+            epsilon=0
+        else:
+            epsilon = CFG.epsilon
 
-        out = self.net(obs_old)
-
-        with torch.no_grad():
-            exp = rwd + CFG.gamma * self.net(obs_new)
-
-        #loss
-        loss = torch.square(exp-out).sum()
-
-        self.opt.zero_grad()
-        loss.backward()
-        self.opt.step()
-
-
-
-    def get(self, obs_new, act_space):
-        """
-        Returns the best action according to the DQN.
-        """
-        epsilon = CFG.epsilon
-
-        # Returns a random action with p = epsilon or the best choice according to the nn
+        # Returns a random action with p = epsilon or the best choice according to the DQN
         if random.uniform(0,1) < epsilon:
             return act_space.sample()
 
         with torch.no_grad():
             action = self.net(torch.tensor(obs_new))
             return action.numpy()
+
+
+    def set(self, obs_old, act, rwd, obs_new):
+        """
+        Learn from one step
+        """
+        self.time_step += 1
+
+        # Convert np.array from environment into tensor
+        obs_old = torch.tensor(obs_old)
+        obs_new = torch.tensor(obs_new)
+
+        # Get y_pred
+        out = self.net(obs_old)
+
+        # Get y_max from target
+        with torch.no_grad():
+            exp = rwd + CFG.gamma * self.target(obs_new)
+
+        # Compute loss
+        loss = torch.square(exp-out).sum()
+
+        # Backward propagation
+        # Gradient descent updates weight in the network to minimize loss
+        self.opt.zero_grad()
+        loss.backward()
+        self.opt.step()
+
+        # Target network update every 'sync_every' steps
+        if self.time_step % CFG.sync_every == 0:
+            self.target.load_state_dict(self.net.state_dict())
+
+
+    def save(self, path: str):
+        """
+        Save the agent's model to disk.
+        """
+        torch.save(self.net.state_dict(), f"{path}saved_model.pt")
+
+
+    def load(self, path: str):
+        """
+        Load the agent's weights from disk.
+        """
+        data = torch.load(path, map_location=torch.device("cpu"))
+        self.net.load_state_dict(data)
