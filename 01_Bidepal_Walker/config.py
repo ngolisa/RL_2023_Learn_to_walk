@@ -19,7 +19,12 @@ class Configuration:
         self.gamma = 0.98
         self.buffer_size = 100000
         self.batch_size = 32
-        self.epsilon = .9
+        self.epsilon = .7
+        self.sync_every = 200
+
+        self.max_steps = 200
+        self.episodes = 10
+
 
 
 

@@ -10,41 +10,74 @@ from config import CFG
 # evaluate model
 
 
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    print("GPU is available and being used")
+else:
+    device = torch.device("cpu")
+    print("GPU is not available, using CPU instead")
 
-env = gym.make("BipedalWalker-v3",hardcore=True, render_mode='human')
 
-iterations = 1000
+env = gym.make("BipedalWalker-v3",hardcore=False)
 
-#print(env.observation_space.shape[0], env.action_space.shape[0])
+episodes = CFG.episodes
+max_steps = CFG.max_steps
 
+
+# Initializing agent
 agent = DQNAgent(env.observation_space.shape[0], env.action_space.shape[0])
 
+
+# Start training
+for episode in range(episodes):
+
+    # Start episode
+    terminated = True
+    for step in range(max_steps):
+
+        # Reinitializing
+        if terminated :
+            obs_old, info = env.reset()
+
+        # Get action from agent and give it to environment
+        action = agent.get(obs_old, env.action_space)
+        obs_new, reward, terminated, truncated, info = env.step(action)
+
+        # Storing step into buffer
+        BUF.set((obs_old, action, reward, obs_new))
+
+
+        # Training on a batch of the buffer if large enough otherwise only on this step
+        try :
+            old_list, act_list, rwd_list, new_list = BUF.get()
+            for i in range(CFG.batch_size):
+                agent.set(old_list[i], act_list[i], rwd_list[i], new_list[i])
+        except :
+            agent.set(obs_old, action, reward, obs_new)
+
+        obs_old = obs_new
+
+    # Completion status
+    print(f'{round(episode/episodes*100,2)} % done')
+
+
+
+# Reinitializing environment with render
+env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
+
 terminated = True
-for _ in range(iterations):
+
+#evaluation/vizualization over 1000 steps
+for step in range(1000):
 
     if terminated :
-        obs_old, info = env.reset()
+            obs_old, info = env.reset()
 
-    action = agent.get(obs_old, env.action_space)
+    action = agent.get(obs_old, env.action_space, evaluating=True)
 
     obs_new, reward, terminated, truncated, info = env.step(action)
 
-    BUF.set((obs_old, action, reward, obs_new))
-
-    try :
-        old_list, act_list, rwd_list, new_list = BUF.get()
-        for i in range(CFG.batch_size):
-            agent.set(old_list[i], act_list[i], rwd_list[i], new_list[i])
-            print(f'training {i} of step{_}completed')
-
-    except :
-        agent.set(obs_old, action, reward, obs_new)
-
     obs_old = obs_new
-
-    #print(BUF.len())
-
-
 
 
 
