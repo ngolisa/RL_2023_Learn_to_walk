@@ -51,3 +51,7 @@ MANIFEST
 **/*pickle
 data/
 raw_data/
+videos-bidepal/
+
+
+**/*mp4
