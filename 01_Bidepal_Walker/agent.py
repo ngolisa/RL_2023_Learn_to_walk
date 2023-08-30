@@ -107,7 +107,7 @@ class DQNAgent(Agent):
 
 
 
-    def set(self, obs_old, act, rwd, obs_new):
+    def set(self, obs_old, act, rwd, obs_new, terminated):
         """
         Learn from one step
         """
@@ -122,7 +122,7 @@ class DQNAgent(Agent):
 
         # Get y_max from target
         with torch.no_grad():
-            exp = rwd + CFG.gamma * self.target(obs_new)
+            exp = rwd + (1 - terminated) * CFG.gamma * self.target(obs_new)
 
         # Compute loss
         loss = F.mse_loss(out, exp)
