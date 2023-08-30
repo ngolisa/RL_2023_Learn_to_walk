@@ -7,7 +7,7 @@ import time
 
 # Import for videorecording
 import os
-os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
+# os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
 import moviepy
 from gym.utils.save_video import save_video
 
@@ -37,14 +37,16 @@ max_steps = CFG.max_steps
 
 # Initializing agent
 agent = DQNAgent(env.observation_space.shape[0], env.action_space.shape[0])
-
+print(type(agent).__name__)
 
 # Start training
+total_rewards = []
 for episode in range(episodes):
 
     # Start episode
     start_time=time.time()
     terminated = True
+    r = 0
     for step in range(max_steps):
 
         # Reinitializing
@@ -54,9 +56,10 @@ for episode in range(episodes):
         # Get action from agent and give it to environment
         action = agent.get(obs_old, env.action_space)
         obs_new, reward, terminated, truncated, info = env.step(action)
-
+        r+=reward
         # Storing step into buffer
-        BUF.set((obs_old, action, reward, obs_new))
+        if not terminated:
+            BUF.set((obs_old, action, reward, obs_new))
 
 
         # Training on a batch of the buffer if large enough otherwise only on this step
@@ -70,18 +73,23 @@ for episode in range(episodes):
         obs_old = obs_new
 
     end_time = time.time()
+    total_rewards.append(r)
 
     # Completion status
     percent = round((episode+1)/episodes*100,2)
     duration = round(end_time - start_time, 2) #in sec
-    remaining_est = 1/(percent/100) * duration
-    print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est}')
+    remaining_est = (episode-episodes) * duration
+    print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
 
-# path = os.path.join(os.path.dirname(__file__), f"../data/")
-# agent.save(path)
+#Computing best rewards
+best_reward = max(total_rewards)
+
+path = os.path.join(os.path.dirname(__file__), f"./data/")
+agent.save(path, best_reward)
+
 
 # Reinitializing environment with render
-env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='rgb_array_list')
+env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
 
 terminated = False
 
@@ -92,15 +100,15 @@ episode_index = 0
 step_starting_index =0
 
 for step in range(1000):
-
     if terminated :
-        save_video(
-            env.render(),
-            "videos-bidepal",
-            fps=env.metadata["render_fps"],
-            step_starting_index=step_starting_index,
-            episode_index=episode_index
-        )
+        # save_video(
+        #     env.render(),
+        #     "videos-bidepal",
+        #     fps=env.metadata["render_fps"],
+        #     step_starting_index=step_starting_index,
+        #     episode_index=episode_index,
+        #     name_prefix = f"{type(agent).__name__}__{CFG.episodes}episodes__{CFG.max_steps}steps"
+        # )
         episode_index += 1
         step_starting_index = step+1
 
@@ -111,6 +119,7 @@ for step in range(1000):
     obs_new, reward, terminated, truncated, info = env.step(action)
 
     obs_old = obs_new
+
 
 
 

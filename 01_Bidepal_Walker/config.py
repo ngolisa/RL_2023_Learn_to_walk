@@ -18,17 +18,17 @@ class Configuration:
         self.learning_rate = 0.0001
         self.gamma = 0.98
         self.buffer_size = 100000
-        self.batch_size = 32
+        self.batch_size = 64
 
         self.sync_every = 200
 
         self.max_steps = 200
-        self.episodes = 10
+        self.episodes = 1000
 
         # Agent learning parameters
-        self.exploration_rate = .9
+        self.exploration_rate = .8
         self.exploration_rate_min = 0.05
-        self.exploration_rate_decay = 0.99999975
+        self.exploration_rate_decay = 0.999
 
 
 CFG = Configuration()
