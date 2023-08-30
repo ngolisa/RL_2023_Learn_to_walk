@@ -2,20 +2,23 @@ import gym
 import torch
 import numpy as np
 import pickle
+import time
+
 from agent import DQNAgent
 from buffer import BUF
 from config import CFG
+
 # import data
 # train model
 # evaluate model
 
 
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-    print("GPU is available and being used")
-else:
-    device = torch.device("cpu")
-    print("GPU is not available, using CPU instead")
+# if torch.cuda.is_available():
+#     device = torch.device("cuda")
+#     print("GPU is available and being used")
+# else:
+#     device = torch.device("cpu")
+#     print("GPU is not available, using CPU instead")
 
 
 env = gym.make("BipedalWalker-v3",hardcore=False)
@@ -32,6 +35,7 @@ agent = DQNAgent(env.observation_space.shape[0], env.action_space.shape[0])
 for episode in range(episodes):
 
     # Start episode
+    start_time=time.time()
     terminated = True
     for step in range(max_steps):
 
@@ -57,10 +61,16 @@ for episode in range(episodes):
 
         obs_old = obs_new
 
+    end_time = time.time()
+
     # Completion status
-    print(f'{round(episode/episodes*100,2)} % done')
+    percent = round((episode+1)/episodes*100,2)
+    duration = round(end_time - start_time, 2) #in sec
+    remaining_est = 1/(percent/100) * duration
+    print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est}')
 
-
+# path = os.path.join(os.path.dirname(__file__), f"../data/")
+# agent.save(path)
 
 # Reinitializing environment with render
 env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
@@ -68,6 +78,7 @@ env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
 terminated = True
 
 #evaluation/vizualization over 1000 steps
+input("Press enter to see validation ")
 for step in range(1000):
 
     if terminated :
