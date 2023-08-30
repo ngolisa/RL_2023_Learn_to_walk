@@ -7,6 +7,7 @@ import torch
 import torch.nn
 import model
 from config import CFG
+from torch.nn import functional as F
 
 
 class Agent:
@@ -28,6 +29,20 @@ class Agent:
         Request a next action from the agent.
         """
         raise NotImplementedError
+
+    def save(self, path: str, best_reward):
+        """
+        Save the agent's model to disk.
+        """
+        torch.save(self.net.state_dict(), f"{path}saved_model_{type(self).__name__}__{round(best_reward,2)}rw__{CFG.episodes}episodes__{CFG.max_steps}steps.pt")
+
+
+    def load(self, path: str):
+        """
+        Load the agent's weights from disk.
+        """
+        data = torch.load(path, map_location=torch.device("cpu"))
+        self.net.load_state_dict(data)
 
 
 class RandomAgent(Agent):
@@ -79,9 +94,10 @@ class DQNAgent(Agent):
             what_to_do = act_space.sample()
 
         # Exploit : Otherwise, returns the best choice according to the DQN
-        with torch.no_grad():
-            action = self.net(torch.tensor(obs_new))
-            what_to_do = action.numpy()
+        else :
+            with torch.no_grad():
+                action = self.net(torch.tensor(obs_new))
+                what_to_do = action.numpy()
 
         # decrease exploration_rate
         self.exploration_rate *= self.exploration_rate_decay
@@ -109,7 +125,7 @@ class DQNAgent(Agent):
             exp = rwd + CFG.gamma * self.target(obs_new)
 
         # Compute loss
-        loss = torch.square(exp-out).sum()
+        loss = F.mse_loss(out, exp)
 
         # Backward propagation
         # Gradient descent updates weight in the network to minimize loss
@@ -120,18 +136,3 @@ class DQNAgent(Agent):
         # Target network update every 'sync_every' steps
         if self.time_step % CFG.sync_every == 0:
             self.target.load_state_dict(self.net.state_dict())
-
-
-    def save(self, path: str):
-        """
-        Save the agent's model to disk.
-        """
-        torch.save(self.net.state_dict(), f"{path}saved_model.pt")
-
-
-    def load(self, path: str):
-        """
-        Load the agent's weights from disk.
-        """
-        data = torch.load(path, map_location=torch.device("cpu"))
-        self.net.load_state_dict(data)
