@@ -16,9 +16,9 @@ class Configuration:
         Declare types but do not instantiate anything
         """
         self.learning_rate = 0.0001
-        self.gamma = 0.98
-        self.buffer_size = 100000
-        self.batch_size = 64
+        self.gamma = 0.09
+        self.buffer_size = 128
+        self.batch_size = 32
 
         self.sync_every = 200
 

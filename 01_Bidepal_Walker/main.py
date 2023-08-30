@@ -62,14 +62,19 @@ for episode in range(episodes):
 
 
         # Training on a batch of the buffer if large enough otherwise only on this step
-        try :
-            old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
-            for i in range(CFG.batch_size):
-                agent.set(old_list[i], act_list[i], rwd_list[i], new_list[i], new_terminated[i])
-        except :
-            agent.set(obs_old, action, reward, obs_new, terminated)
+        # try :
+        #     old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
+        #     for i in range(CFG.batch_size):
+        #         agent.set(old_list[i], act_list[i], rwd_list[i], new_list[i], new_terminated[i])
+        # except :
+        #     agent.set(obs_old, action, reward, obs_new, terminated)
 
         obs_old = obs_new
+
+    old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
+
+    agent.set(old_list, act_list, rwd_list, new_list, new_terminated)
+
 
     end_time = time.time()
     total_rewards.append(r)
