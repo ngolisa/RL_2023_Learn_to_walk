@@ -29,7 +29,7 @@ from config import CFG
 #     print("GPU is not available, using CPU instead")
 
 
-env = gym.make("BipedalWalker-v3",hardcore=False)
+env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
 
 episodes = CFG.episodes
 max_steps = CFG.max_steps
@@ -58,17 +58,16 @@ for episode in range(episodes):
         obs_new, reward, terminated, truncated, info = env.step(action)
         r+=reward
         # Storing step into buffer
-        if not terminated:
-            BUF.set((obs_old, action, reward, obs_new))
+        BUF.set((obs_old, action, reward, obs_new, terminated))
 
 
         # Training on a batch of the buffer if large enough otherwise only on this step
         try :
-            old_list, act_list, rwd_list, new_list = BUF.get()
+            old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
             for i in range(CFG.batch_size):
-                agent.set(old_list[i], act_list[i], rwd_list[i], new_list[i])
+                agent.set(old_list[i], act_list[i], rwd_list[i], new_list[i], new_terminated[i])
         except :
-            agent.set(obs_old, action, reward, obs_new)
+            agent.set(obs_old, action, reward, obs_new, terminated)
 
         obs_old = obs_new
 
@@ -78,14 +77,14 @@ for episode in range(episodes):
     # Completion status
     percent = round((episode+1)/episodes*100,2)
     duration = round(end_time - start_time, 2) #in sec
-    remaining_est = (episode-episodes) * duration
+    remaining_est = (episodes-episode) * duration
     print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
 
 #Computing best rewards
 best_reward = max(total_rewards)
 
-path = os.path.join(os.path.dirname(__file__), f"./data/")
-agent.save(path, best_reward)
+# path = os.path.join(os.path.dirname(__file__), f"./data/")
+# agent.save(path, best_reward)
 
 
 # Reinitializing environment with render

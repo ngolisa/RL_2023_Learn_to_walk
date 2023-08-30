@@ -17,7 +17,7 @@ class ReplayBuffer():
         Store a single new transition in the replay buffer.
         """
 
-        old, act, rwd, new = transi
+        old, act, rwd, new, terminated = transi
 
         # We deal with terminal states by giving them the same value as the previous state.
         # This ensures that CFG.gamma * V(new) - V(old) ~ 0
@@ -27,7 +27,7 @@ class ReplayBuffer():
         # old = torch.permute(torch.tensor(old["observation"]).float(), (2, 0, 1))
         # new = torch.permute(torch.tensor(new["observation"]).float(), (2, 0, 1))
 
-        self.buffer.append((old, act, rwd, new))
+        self.buffer.append((old, act, rwd, new, terminated))
 
     def get(self):
         """
@@ -37,13 +37,13 @@ class ReplayBuffer():
             raise Exception("Not enough data in replay buffer.")
 
         batch = random.sample(self.buffer, CFG.batch_size)
-        old, act, rwd, new = zip(*batch)
+        old, act, rwd, new, terminated = zip(*batch)
 
         # old = torch.stack(old)
         # new = torch.stack(new)
         # act = torch.tensor(act).unsqueeze(1)
         # rwd = torch.tensor(rwd)
 
-        return old, act, rwd, new
+        return old, act, rwd, new, terminated
 
 BUF = ReplayBuffer()
