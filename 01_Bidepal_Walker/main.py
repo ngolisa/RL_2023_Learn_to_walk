@@ -1,9 +1,17 @@
+# Import for environment
 import gym
 import torch
 import numpy as np
 import pickle
 import time
 
+# Import for videorecording
+import os
+os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
+import moviepy
+from gym.utils.save_video import save_video
+
+# Import Classes
 from agent import DQNAgent
 from buffer import BUF
 from config import CFG
@@ -73,16 +81,30 @@ for episode in range(episodes):
 # agent.save(path)
 
 # Reinitializing environment with render
-env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
+env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='rgb_array_list')
 
-terminated = True
+terminated = False
 
 #evaluation/vizualization over 1000 steps
 input("Press enter to see validation ")
+obs_old, info = env.reset()
+episode_index = 0
+step_starting_index =0
+
 for step in range(1000):
 
     if terminated :
-            obs_old, info = env.reset()
+        save_video(
+            env.render(),
+            "videos-bidepal",
+            fps=env.metadata["render_fps"],
+            step_starting_index=step_starting_index,
+            episode_index=episode_index
+        )
+        episode_index += 1
+        step_starting_index = step+1
+
+        obs_old, info = env.reset()
 
     action = agent.get(obs_old, env.action_space, evaluating=True)
 
