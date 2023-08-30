@@ -61,24 +61,34 @@ class DQNAgent(Agent):
         self.target = model.DQN(obs_size, action_size)
         self.target.load_state_dict(self.net.state_dict())
         self.time_step = 0
+        self.exploration_rate = CFG.exploration_rate
+        self.exploration_rate_min = CFG.exploration_rate_min
+        self.exploration_rate_decay = CFG.exploration_rate_decay
 
 
     def get(self, obs_new, act_space, evaluating=False):
         """
         Next action selection
         """
+        # Evaluating agent means rely on learnt behavior (no randomness)
         if evaluating:
-            epsilon=0
-        else:
-            epsilon = CFG.epsilon
+            self.exploration_rate=0
 
-        # Returns a random action with p = epsilon or the best choice according to the DQN
-        if random.uniform(0,1) < epsilon:
-            return act_space.sample()
+        # Explore : Returns a random action with p = exploration_rate
+        if random.uniform(0,1) < self.exploration_rate:
+            what_to_do = act_space.sample()
 
+        # Exploit : Otherwise, returns the best choice according to the DQN
         with torch.no_grad():
             action = self.net(torch.tensor(obs_new))
-            return action.numpy()
+            what_to_do = action.numpy()
+
+        # decrease exploration_rate
+        self.exploration_rate *= self.exploration_rate_decay
+        self.exploration_rate = max(self.exploration_rate_min, self.exploration_rate)
+
+        return what_to_do
+
 
 
     def set(self, obs_old, act, rwd, obs_new):
