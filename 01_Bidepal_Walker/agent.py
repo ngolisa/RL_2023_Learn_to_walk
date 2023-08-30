@@ -99,6 +99,7 @@ class DQNAgent(Agent):
                 action = self.net(torch.tensor(obs_new))
                 what_to_do = action.numpy()
 
+
         # decrease exploration_rate
         self.exploration_rate *= self.exploration_rate_decay
         self.exploration_rate = max(self.exploration_rate_min, self.exploration_rate)
@@ -113,24 +114,27 @@ class DQNAgent(Agent):
         """
         self.time_step += 1
 
-        # Convert np.array from environment into tensor
-        obs_old = torch.tensor(obs_old)
-        obs_new = torch.tensor(obs_new)
-
         # Get y_pred
         out = self.net(obs_old)
 
+        terminated = terminated.long()
+
+        print('azlkj')
         # Get y_max from target
         with torch.no_grad():
             exp = rwd + (1 - terminated) * CFG.gamma * self.target(obs_new)
-
+        print('post exp')
         # Compute loss
-        loss = F.mse_loss(out, exp)
+        loss = torch.square(out - exp)
+
+        print(out.dtype)
+        print(exp.dtype)
+        print(loss.dtype)
 
         # Backward propagation
         # Gradient descent updates weight in the network to minimize loss
         self.opt.zero_grad()
-        loss.backward()
+        loss.sum().backward()
         self.opt.step()
 
         # Target network update every 'sync_every' steps

@@ -16,4 +16,4 @@ class DQN(nn.Module):
         """Forward pass."""
         x = F.relu(self.layer1(states))
         x = F.relu(self.layer2(x))
-        return nn.Tanh()(self.layer3(x))
+        return self.layer3(x)
