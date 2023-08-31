@@ -119,17 +119,14 @@ class DQNAgent(Agent):
 
         terminated = terminated.long()
 
-        print('azlkj')
+
         # Get y_max from target
         with torch.no_grad():
             exp = rwd + (1 - terminated) * CFG.gamma * self.target(obs_new)
-        print('post exp')
+
         # Compute loss
         loss = torch.square(out - exp)
 
-        print(out.dtype)
-        print(exp.dtype)
-        print(loss.dtype)
 
         # Backward propagation
         # Gradient descent updates weight in the network to minimize loss
