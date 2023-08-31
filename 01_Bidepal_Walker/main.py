@@ -29,7 +29,7 @@ from config import CFG
 #     print("GPU is not available, using CPU instead")
 
 
-env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
+env = gym.make("BipedalWalker-v3",hardcore=False)
 
 episodes = CFG.episodes
 max_steps = CFG.max_steps
@@ -83,15 +83,17 @@ for episode in range(episodes):
     percent = round((episode+1)/episodes*100,2)
     duration = round(end_time - start_time, 2) #in sec
     remaining_est = (episodes-episode) * duration
-    print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
+
+    if episode%100 ==0:
+        print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
 
 #Computing best rewards
 best_reward = max(total_rewards)
 
-# path = os.path.join(os.path.dirname(__file__), f"./data/")
-# agent.save(path, best_reward)
+path = os.path.join(os.path.dirname(__file__), f"./data/")
+agent.save(path, best_reward)
 
-
+agent.load('01_Bidepal_Walker/data/saved_model_DQNAgent__4.27rw__300000episodes__400steps.pt')
 # Reinitializing environment with render
 env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
 
