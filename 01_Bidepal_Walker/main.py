@@ -39,53 +39,64 @@ max_steps = CFG.max_steps
 agent = DQNAgent(env.observation_space.shape[0], env.action_space.shape[0])
 print(type(agent).__name__)
 
-# Start training
-total_rewards = []
-for episode in range(episodes):
+# # Start training
+# total_rewards = []
+# for episode in range(episodes):
 
-    # Start episode
-    start_time=time.time()
-    terminated = True
-    r = 0
-    for step in range(max_steps):
+#     # Start episode
+#     start_time=time.time()
+#     terminated = True
+#     r = 0
+#     for step in range(max_steps):
 
-        # Reinitializing
-        if terminated :
-            obs_old, info = env.reset()
+#         # Reinitializing
+#         if terminated :
+#             obs_old, info = env.reset()
 
-        # Get action from agent and give it to environment
-        action = agent.get(obs_old, env.action_space)
-        obs_new, reward, terminated, truncated, info = env.step(action)
-        r+=reward
-        # Storing step into buffer
-        if not terminated:
-            BUF.set((obs_old, action, reward, obs_new))
+#         # Get action from agent and give it to environment
+#         action = agent.get(obs_old, env.action_space)
+#         obs_new, reward, terminated, truncated, info = env.step(action)
+#         r+=reward
+#         # Storing step into buffer
+#         BUF.set((obs_old, action, reward, obs_new, terminated))
 
 
-        # Training on a batch of the buffer if large enough otherwise only on this step
-        try :
-            old_list, act_list, rwd_list, new_list = BUF.get()
-            for i in range(CFG.batch_size):
-                agent.set(old_list[i], act_list[i], rwd_list[i], new_list[i])
-        except :
-            agent.set(obs_old, action, reward, obs_new)
+#         # Training on a batch of the buffer if large enough otherwise only on this step
+#         # try :
+#         #     old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
+#         #     for i in range(CFG.batch_size):
+#         #         agent.set(old_list[i], act_list[i], rwd_list[i], new_list[i], new_terminated[i])
+#         # except :
+#         #     agent.set(obs_old, action, reward, obs_new, terminated)
 
-        obs_old = obs_new
+#         obs_old = obs_new
 
-    end_time = time.time()
-    total_rewards.append(r)
+#     old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
 
-    # Completion status
-    percent = round((episode+1)/episodes*100,2)
-    duration = round(end_time - start_time, 2) #in sec
-    remaining_est = (episode-episodes) * duration
-    print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
+#     agent.set(old_list, act_list, rwd_list, new_list, new_terminated)
 
-#Computing best rewards
-best_reward = max(total_rewards)
 
-path = os.path.join(os.path.dirname(__file__), f"./data/")
-agent.save(path, best_reward)
+#     end_time = time.time()
+#     total_rewards.append(r)
+
+#     # Completion status
+#     percent = round((episode+1)/episodes*100,2)
+#     duration = round(end_time - start_time, 2) #in sec
+#     remaining_est = (episodes-episode) * duration
+
+#     if episode%100 ==0:
+#         print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
+
+# #Computing best rewards
+# best_reward = max(total_rewards)
+
+# path = os.path.join(os.path.dirname(__file__), f"./data/")
+# # agent.save(path, best_reward)
+
+agent.load('01_Bidepal_Walker/data/saved_model_DQNAgent__4.27rw__300000episodes__400steps.pt')
+# agent.evaluate_recording(50)
+# agent.evaluate(50)
+
 
 
 # Reinitializing environment with render
@@ -100,15 +111,16 @@ episode_index = 0
 step_starting_index =0
 
 for step in range(1000):
+    tmp = f"{type(agent).__name__}__{CFG.episodes}episodes__{CFG.max_steps}steps"
     if terminated :
-        # save_video(
-        #     env.render(),
-        #     "videos-bidepal",
-        #     fps=env.metadata["render_fps"],
-        #     step_starting_index=step_starting_index,
-        #     episode_index=episode_index,
-        #     name_prefix = f"{type(agent).__name__}__{CFG.episodes}episodes__{CFG.max_steps}steps"
-        # )
+        save_video(
+            env.render(),
+            "videos-bidepal",
+            fps=env.metadata["render_fps"],
+            step_starting_index=step_starting_index,
+            episode_index=episode_index,
+            name_prefix = 'test'
+        )
         episode_index += 1
         step_starting_index = step+1
 

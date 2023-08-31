@@ -6,8 +6,11 @@ import random
 import torch
 import torch.nn
 import model
+import gym
 from config import CFG
 from torch.nn import functional as F
+from gym.utils.save_video import save_video
+
 
 
 class Agent:
@@ -43,6 +46,56 @@ class Agent:
         """
         data = torch.load(path, map_location=torch.device("cpu"))
         self.net.load_state_dict(data)
+
+    def evaluate(self, number_of_steps=1000):
+        input("Press enter to see validation ")
+        env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
+        obs_old, info = env.reset()
+        terminated = False
+
+        for step in range(number_of_steps):
+            if terminated :
+                obs_old, info = env.reset()
+            action = self.get(obs_old, env.action_space, evaluating=True)
+            obs_new, reward, terminated, truncated, info = env.step(action)
+
+        obs_old = obs_new
+
+
+    # def evaluate_recording(self, number_of_steps=1000, frequency_episodes=1):
+    #     env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='rgb_array')
+    #     input("Press enter to see validation ")
+    #     obs_old, info = env.reset()
+    #     terminated = False
+    #     episode_index = 0
+    #     step_starting_index =0
+
+    #     for step in range(1000):
+    #         if terminated :
+
+    #             episode_index += 1
+    #             step_starting_index = step+1
+
+    #             obs_old, info = env.reset()
+    #         if episode_index%frequency_episodes==0:
+    #             save_video(
+    #                 env.render(),
+    #                 "videos-bidepal",
+    #                 fps=env.metadata["render_fps"],
+    #                 step_starting_index=step_starting_index,
+    #                 episode_index=episode_index,
+    #                 name_prefix = f"{type(self).__name__}__{CFG.episodes}episodes__{CFG.max_steps}steps__"
+    #             )
+
+
+    #         action = self.get(obs_old, env.action_space, evaluating=True)
+
+    #         obs_new, reward, terminated, truncated, info = env.step(action)
+
+    #         obs_old = obs_new
+
+
+
 
 
 class RandomAgent(Agent):
@@ -99,6 +152,7 @@ class DQNAgent(Agent):
                 action = self.net(torch.tensor(obs_new))
                 what_to_do = action.numpy()
 
+
         # decrease exploration_rate
         self.exploration_rate *= self.exploration_rate_decay
         self.exploration_rate = max(self.exploration_rate_min, self.exploration_rate)
@@ -107,30 +161,30 @@ class DQNAgent(Agent):
 
 
 
-    def set(self, obs_old, act, rwd, obs_new):
+    def set(self, obs_old, act, rwd, obs_new, terminated):
         """
         Learn from one step
         """
         self.time_step += 1
 
-        # Convert np.array from environment into tensor
-        obs_old = torch.tensor(obs_old)
-        obs_new = torch.tensor(obs_new)
-
         # Get y_pred
         out = self.net(obs_old)
 
+        terminated = terminated.long()
+
+
         # Get y_max from target
         with torch.no_grad():
-            exp = rwd + CFG.gamma * self.target(obs_new)
+            exp = rwd + (1 - terminated) * CFG.gamma * self.target(obs_new)
 
         # Compute loss
-        loss = F.mse_loss(out, exp)
+        loss = torch.square(out - exp)
+
 
         # Backward propagation
         # Gradient descent updates weight in the network to minimize loss
         self.opt.zero_grad()
-        loss.backward()
+        loss.sum().backward()
         self.opt.step()
 
         # Target network update every 'sync_every' steps
