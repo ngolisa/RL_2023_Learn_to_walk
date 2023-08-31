@@ -43,37 +43,47 @@ print(type(agent).__name__)
 total_rewards = []
 for episode in range(episodes):
 
+    if episode %100 == 0:
+        env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
+    else :
+        env = gym.make("BipedalWalker-v3",hardcore=False)
+
+
     # Start episode
     start_time=time.time()
-    terminated = True
-    r = 0
-    for step in range(max_steps):
 
-        # Reinitializing
-        if terminated :
-            obs_old, info = env.reset()
+    r = 0
+
+    obs_old, _ = env.reset()
+
+    for step in range(max_steps):
 
         # Get action from agent and give it to environment
         action = agent.get(obs_old, env.action_space)
-        obs_new, reward, terminated, truncated, info = env.step(action)
+        obs_new, reward, terminated, truncated, _ = env.step(action)
         r+=reward
+
+        done = terminated or truncated or step == max_steps
+
         # Storing step into buffer
-        BUF.set((obs_old, action, reward, obs_new, terminated))
+        BUF.set((obs_old, action, reward, obs_new, done))
+
+        # Training agent if buffer is full (no need to clear it because size)
+        if agent.time_step % CFG.buffer_size == 0 :
+            old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
+            agent.set(old_list, act_list, rwd_list, new_list, new_terminated)
 
 
-        # Training on a batch of the buffer if large enough otherwise only on this step
-        # try :
-        #     old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
-        #     for i in range(CFG.batch_size):
-        #         agent.set(old_list[i], act_list[i], rwd_list[i], new_list[i], new_terminated[i])
-        # except :
-        #     agent.set(obs_old, action, reward, obs_new, terminated)
+        # Updating target after sync_every steps
+        if agent.time_step % CFG.sync_every == 0:
+            agent.target.load_state_dict(agent.net.state_dict())
+            print('Target updated')
 
         obs_old = obs_new
 
-    old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
-
-    agent.set(old_list, act_list, rwd_list, new_list, new_terminated)
+        # Reinitializing
+        if done:
+            break
 
 
     end_time = time.time()
@@ -91,9 +101,9 @@ for episode in range(episodes):
 best_reward = max(total_rewards)
 
 path = os.path.join(os.path.dirname(__file__), f"./data/")
-agent.save(path, best_reward)
+#agent.save(path, best_reward)
 
-agent.load('01_Bidepal_Walker/data/saved_model_DQNAgent__4.27rw__300000episodes__400steps.pt')
+#agent.load('01_Bidepal_Walker/data/saved_model_DQNAgent__4.27rw__300000episodes__400steps.pt')
 # Reinitializing environment with render
 env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
 

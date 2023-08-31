@@ -25,10 +25,6 @@ class ReplayBuffer():
         new = torch.tensor(new)
         terminated = torch.tensor(terminated)
 
-        # We deal with terminal states by giving them the same value as the previous state.
-        # This ensures that CFG.gamma * V(new) - V(old) ~ 0
-        if new is None:
-            new = old
 
         # old = torch.permute(torch.tensor(old["observation"]).float(), (2, 0, 1))
         # new = torch.permute(torch.tensor(new["observation"]).float(), (2, 0, 1))
@@ -51,5 +47,12 @@ class ReplayBuffer():
         terminated = torch.tensor(terminated).unsqueeze(-1)
 
         return old, act, rwd, new, terminated
+
+    def clear(self):
+        """
+        Clear the buffer memory
+        """
+        self.buffer.clear()
+
 
 BUF = ReplayBuffer()
