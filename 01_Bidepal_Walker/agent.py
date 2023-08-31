@@ -8,6 +8,7 @@ import torch.nn
 import model
 from config import CFG
 from torch.nn import functional as F
+import numpy as np
 
 
 class Agent:
@@ -87,7 +88,8 @@ class DQNAgent(Agent):
         """
         # Evaluating agent means rely on learnt behavior (no randomness)
         if evaluating:
-            self.exploration_rate=0
+            self.exploration_rate=0.05
+
 
         # Explore : Returns a random action with p = exploration_rate
         if random.uniform(0,1) < self.exploration_rate:

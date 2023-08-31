@@ -15,6 +15,7 @@ from gym.utils.save_video import save_video
 from agent import DQNAgent
 from buffer import BUF
 from config import CFG
+import wrapper
 
 # import data
 # train model
@@ -56,14 +57,21 @@ for episode in range(episodes):
 
     obs_old, _ = env.reset()
 
+    env = wrapper.RewardWrapper(env)
+
     for step in range(max_steps):
 
         # Get action from agent and give it to environment
         action = agent.get(obs_old, env.action_space)
         obs_new, reward, terminated, truncated, _ = env.step(action)
-        r+=reward
+        r += reward
 
-        done = terminated or truncated or step == max_steps
+        done = terminated or truncated
+
+        # if reward < 0 :
+        #     reward = 0
+        # else :
+        #     reward *= 100
 
         # Storing step into buffer
         BUF.set((obs_old, action, reward, obs_new, done))
@@ -96,6 +104,7 @@ for episode in range(episodes):
 
     if episode%100 ==0:
         print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
+        print(agent.exploration_rate)
 
 #Computing best rewards
 best_reward = max(total_rewards)
@@ -116,23 +125,23 @@ episode_index = 0
 step_starting_index =0
 
 for step in range(1000):
-    if terminated :
-        # save_video(
-        #     env.render(),
-        #     "videos-bidepal",
-        #     fps=env.metadata["render_fps"],
-        #     step_starting_index=step_starting_index,
-        #     episode_index=episode_index,
-        #     name_prefix = f"{type(agent).__name__}__{CFG.episodes}episodes__{CFG.max_steps}steps"
-        # )
-        episode_index += 1
-        step_starting_index = step+1
+    # if terminated :
+    #     # save_video(
+    #     #     env.render(),
+    #     #     "videos-bidepal",
+    #     #     fps=env.metadata["render_fps"],
+    #     #     step_starting_index=step_starting_index,
+    #     #     episode_index=episode_index,
+    #     #     name_prefix = f"{type(agent).__name__}__{CFG.episodes}episodes__{CFG.max_steps}steps"
+    #     # )
+    #     episode_index += 1
+    #     step_starting_index = step+1
 
-        obs_old, info = env.reset()
+    #     obs_old, info = env.reset()
 
     action = agent.get(obs_old, env.action_space, evaluating=True)
 
-    obs_new, reward, terminated, truncated, info = env.step(action)
+    obs_new, reward, terminated, truncated, _ = env.step(action)
 
     obs_old = obs_new
 
