@@ -22,13 +22,13 @@ class Configuration:
 
         self.sync_every = 20000
 
-        self.max_steps = 500
-        self.episodes = 100
+        self.max_steps = 200
+        self.episodes = 1000
 
         # Agent learning parameters
         self.exploration_rate = .9
         self.exploration_rate_min = 0.05
         self.exploration_rate_decay = .99999
 
-
+        self.episodes_recording_freq = 6
 CFG = Configuration()
