@@ -14,6 +14,9 @@ from wrapper import RewardWrapper
 import time
 from buffer import BUF
 from gym.utils.save_video import save_video
+import datetime
+
+today =  datetime.datetime.now()
 
 
 
@@ -143,7 +146,7 @@ class DQNAgent(Agent):
         loss.backward()
         self.opt.step()
 
-    def training(self, env, render='human'):
+    def training(self,  render_every=100):
 
         total_rewards = []
         episodes = CFG.episodes
@@ -151,8 +154,8 @@ class DQNAgent(Agent):
 
         for episode in range(episodes):
 
-            if episode %100 == 0:
-                env = gym.make("BipedalWalker-v3",hardcore=False, render_mode=render)
+            if episode %render_every == 0:
+                env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
             else :
                 env = gym.make("BipedalWalker-v3",hardcore=False)
 
@@ -215,6 +218,95 @@ class DQNAgent(Agent):
         return max(total_rewards)
 
 
+    def training_and_record(self):
+
+        total_rewards = []
+        episodes = CFG.episodes
+        max_steps = CFG.max_steps
+        step_starting_index =0
+
+        for episode in range(episodes):
+
+
+            env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='rgb_array_list')
+
+            episode_index = 0
+
+
+            # Start episode
+            start_time=time.time()
+
+            r = 0
+
+            obs_old, _ = env.reset()
+
+            env = RewardWrapper(env)
+
+            for step in range(max_steps):
+
+                # Get action from agent and give it to environment
+                action = self.get(obs_old, env.action_space)
+                obs_new, reward, terminated, truncated, _ = env.step(action)
+                r += reward
+
+                done = terminated or truncated
+
+                # if reward < 0 :
+                #     reward = 0
+                # else :
+                #     reward *= 100
+
+                # Storing step into buffer
+                BUF.set((obs_old, action, reward, obs_new, done))
+
+                # Training self if buffer is full (no need to clear it because size)
+                if self.time_step % CFG.buffer_size == 0 :
+                    old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
+                    self.set(old_list, act_list, rwd_list, new_list, new_terminated)
+
+
+                # Updating target after sync_every steps
+                if self.time_step % CFG.sync_every == 0:
+                    self.target.load_state_dict(self.net.state_dict())
+                    print('Target updated')
+
+                obs_old = obs_new
+
+                # Reinitializing
+                if done:
+                    break
+
+
+
+
+            end_time = time.time()
+            total_rewards.append(r)
+
+            # Completion status
+            percent = round((episode+1)/episodes*100,2)
+            duration = round(end_time - start_time, 2) #in sec
+            remaining_est = (episodes-episode) * duration
+
+            if episode%100 ==0:
+                print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
+                print(self.exploration_rate)
+            save_video(
+                            env.render(),
+                            f"{today}__{type(self).__name__}_train_{CFG.episodes}episodes__{CFG.max_steps}steps",
+                            fps=env.metadata["render_fps"],
+                            step_starting_index=step_starting_index,
+                            episode_index=episode,
+                            name_prefix = f""
+                        )
+            print('video saved ',episode,step_starting_index)
+
+            step_starting_index =step + 1
+            episode_index += 1
+
+        return max(total_rewards)
+
+
+
     def evaluate(self, number_of_steps, recording):
         if recording==False:
             input("Press enter to see validation ")
@@ -247,7 +339,7 @@ class DQNAgent(Agent):
 
                         save_video(
                             env.render(),
-                            f"{type(self).__name__}__{CFG.episodes}episodes__{number_of_steps}steps",
+                            f"{today}__{type(self).__name__}____{number_of_steps}steps",
                             fps=env.metadata["render_fps"],
                             step_starting_index=step_starting_index,
                             episode_index=episode_index,

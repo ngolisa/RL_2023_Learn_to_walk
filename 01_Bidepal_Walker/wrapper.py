@@ -11,8 +11,8 @@ class RewardWrapper(gym.Wrapper):
         if reward>0:
             reward+=100
 
-        if obs[8] + obs[13] == 1:
-            reward += 2
+        # if obs[8] + obs[13] == 1:
+        #     reward += 2
 
         if np.abs(obs[0]) <= .5:
             reward += 1
