@@ -43,9 +43,15 @@ best_reward=agent.training(100)
 # best_reward=agent.training_and_record()
 
 # # # 3. Saving agent (falcultatif)
-# print('saving agent')
-# path = os.path.join(os.path.dirname(__file__), f"./data/")
-# agent.save(path, best_reward)
+save = ''
+path = os.path.join(os.path.dirname(__file__), f"./data/")
+
+while save != 'y' and save!='n':
+    save = input("Souhaitez vous enregistrer l'agent ? (y/n)")
+    if save == 'y':
+        print('saving agent')
+        path = os.path.join(os.path.dirname(__file__), f"./data/")
+        agent.save(path, best_reward)
 
 
 
@@ -62,6 +68,7 @@ print('______')
 
 # 1. Evaluation
 print('evaluating model (opt:recording)')
+
 number_of_steps = 10000
 recording = True
 agent.evaluate(number_of_steps,recording)
