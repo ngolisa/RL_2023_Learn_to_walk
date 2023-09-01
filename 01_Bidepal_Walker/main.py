@@ -15,9 +15,7 @@ from agent import DQNAgent
 from buffer import BUF
 from config import CFG
 import wrapper
-import datetime
 
-today =  datetime.datetime.now()
 
 
 
@@ -41,13 +39,13 @@ print('______')
 
 # 2.1 Start training returning best rewards
 print('training agent')
-# best_reward=agent.training(100)
-best_reward=agent.training_and_record()
+best_reward=agent.training(100)
+# best_reward=agent.training_and_record()
 
 # # # 3. Saving agent (falcultatif)
-print('saving agent')
-path = os.path.join(os.path.dirname(__file__), f"./data/")
-agent.save(path, best_reward)
+# print('saving agent')
+# path = os.path.join(os.path.dirname(__file__), f"./data/")
+# agent.save(path, best_reward)
 
 
 

@@ -8,14 +8,14 @@ class RewardWrapper(gym.Wrapper):
     def step(self, action):
         obs, reward, terminated, truncated, info = self.env.step(action)
 
-        if reward>0:
-            reward+=100
+        # if reward>0:
+        #     reward+=100
 
         # if obs[8] + obs[13] == 1:
         #     reward += 2
 
-        if np.abs(obs[0]) <= .5:
-            reward += 1
+        # if np.abs(obs[0]) <= .5:
+        #     reward += 1
 
         # if obs[2]>.3:
         #     reward+=100

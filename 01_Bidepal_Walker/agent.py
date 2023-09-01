@@ -89,6 +89,7 @@ class DQNAgent(Agent):
         self.exploration_rate = CFG.exploration_rate
         self.exploration_rate_min = CFG.exploration_rate_min
         self.exploration_rate_decay = CFG.exploration_rate_decay
+        self.info = []
 
 
     def get(self, obs_new, act_space, evaluating=False):
@@ -125,7 +126,7 @@ class DQNAgent(Agent):
         """
         Learn from one step
         """
-
+        dic_learn = {}
 
         # Get y_pred
         out = self.net(obs_old)
@@ -139,12 +140,23 @@ class DQNAgent(Agent):
 
         # Compute loss
         loss = torch.square(out - exp).mean()
+        # loss = torch.nn.MSELoss(out,exp)
+
+        # loss = torch.nn.SmoothL1Loss(out,exp)
+
+        # dic_learn['obs_old'] = obs_old
+
+        self.info.append(float(loss))
+
+
 
         # Backward propagation
         # Gradient descent updates weight in the network to minimize loss
         self.opt.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.net.parameters(),100)
         self.opt.step()
+
 
     def training(self,  render_every=100):
 
@@ -215,6 +227,7 @@ class DQNAgent(Agent):
             if episode%100 ==0:
                 print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
                 print(self.exploration_rate)
+        print(self.info)
         return max(total_rewards)
 
 

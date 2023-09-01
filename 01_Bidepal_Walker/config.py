@@ -15,15 +15,15 @@ class Configuration:
         """
         Declare types but do not instantiate anything
         """
-        self.learning_rate = .0001
-        self.gamma = 0.999
+        self.learning_rate = 10**(-4)
+        self.gamma = 0.9
         self.buffer_size = 2048
         self.batch_size = 128
 
-        self.sync_every = 20000
+        self.sync_every = 100000
 
         self.max_steps = 300
-        self.episodes = 20000
+        self.episodes = 2000
 
         # Agent learning parameters
         self.exploration_rate = .9
