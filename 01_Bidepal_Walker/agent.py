@@ -9,6 +9,15 @@ import model
 from config import CFG
 from torch.nn import functional as F
 import numpy as np
+import gym
+from wrapper import RewardWrapper
+import time
+from buffer import BUF
+from gym.utils.save_video import save_video
+import datetime
+
+today =  datetime.datetime.now()
+
 
 
 class Agent:
@@ -80,6 +89,7 @@ class DQNAgent(Agent):
         self.exploration_rate = CFG.exploration_rate
         self.exploration_rate_min = CFG.exploration_rate_min
         self.exploration_rate_decay = CFG.exploration_rate_decay
+        self.info = []
 
 
     def get(self, obs_new, act_space, evaluating=False):
@@ -88,7 +98,7 @@ class DQNAgent(Agent):
         """
         # Evaluating agent means rely on learnt behavior (no randomness)
         if evaluating:
-            self.exploration_rate=0.05
+            self.exploration_rate=0
 
 
         # Explore : Returns a random action with p = exploration_rate
@@ -116,7 +126,7 @@ class DQNAgent(Agent):
         """
         Learn from one step
         """
-
+        dic_learn = {}
 
         # Get y_pred
         out = self.net(obs_old)
@@ -130,9 +140,234 @@ class DQNAgent(Agent):
 
         # Compute loss
         loss = torch.square(out - exp).mean()
+        # loss = torch.nn.MSELoss(out,exp)
+
+        # loss = torch.nn.SmoothL1Loss(out,exp)
+
+        # dic_learn['obs_old'] = obs_old
+
+        self.info.append(float(loss))
+
+
 
         # Backward propagation
         # Gradient descent updates weight in the network to minimize loss
         self.opt.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.net.parameters(),100)
         self.opt.step()
+
+
+    def training(self,  render_every=100):
+
+        total_rewards = []
+        episodes = CFG.episodes
+        max_steps = CFG.max_steps
+
+        for episode in range(episodes):
+
+            if episode %render_every == 0:
+                env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
+            else :
+                env = gym.make("BipedalWalker-v3",hardcore=False)
+
+
+            # Start episode
+            start_time=time.time()
+
+            r = 0
+
+            obs_old, _ = env.reset()
+
+            env = RewardWrapper(env)
+
+            for step in range(max_steps):
+
+                # Get action from agent and give it to environment
+                action = self.get(obs_old, env.action_space)
+                obs_new, reward, terminated, truncated, _ = env.step(action)
+                r += reward
+
+                done = terminated or truncated
+
+                # if reward < 0 :
+                #     reward = 0
+                # else :
+                #     reward *= 100
+
+                # Storing step into buffer
+                BUF.set((obs_old, action, reward, obs_new, done))
+
+                # Training self if buffer is full (no need to clear it because size)
+                if self.time_step % CFG.buffer_size == 0 :
+                    old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
+                    self.set(old_list, act_list, rwd_list, new_list, new_terminated)
+
+
+                # Updating target after sync_every steps
+                if self.time_step % CFG.sync_every == 0:
+                    self.target.load_state_dict(self.net.state_dict())
+                    print('Target updated')
+
+                obs_old = obs_new
+
+                # Reinitializing
+                if done:
+                    break
+
+
+            end_time = time.time()
+            total_rewards.append(r)
+
+            # Completion status
+            percent = round((episode+1)/episodes*100,2)
+            duration = round(end_time - start_time, 2) #in sec
+            remaining_est = (episodes-episode) * duration
+
+            if episode%100 ==0:
+                print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
+                print(self.exploration_rate)
+        print(self.info)
+        return max(total_rewards)
+
+
+    def training_and_record(self):
+
+        total_rewards = []
+        episodes = CFG.episodes
+        max_steps = CFG.max_steps
+        step_starting_index =0
+
+        for episode in range(episodes):
+
+
+            env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='rgb_array_list')
+
+            episode_index = 0
+
+
+            # Start episode
+            start_time=time.time()
+
+            r = 0
+
+            obs_old, _ = env.reset()
+
+            env = RewardWrapper(env)
+
+            for step in range(max_steps):
+
+                # Get action from agent and give it to environment
+                action = self.get(obs_old, env.action_space)
+                obs_new, reward, terminated, truncated, _ = env.step(action)
+                r += reward
+
+                done = terminated or truncated
+
+                # if reward < 0 :
+                #     reward = 0
+                # else :
+                #     reward *= 100
+
+                # Storing step into buffer
+                BUF.set((obs_old, action, reward, obs_new, done))
+
+                # Training self if buffer is full (no need to clear it because size)
+                if self.time_step % CFG.buffer_size == 0 :
+                    old_list, act_list, rwd_list, new_list, new_terminated = BUF.get()
+                    self.set(old_list, act_list, rwd_list, new_list, new_terminated)
+
+
+                # Updating target after sync_every steps
+                if self.time_step % CFG.sync_every == 0:
+                    self.target.load_state_dict(self.net.state_dict())
+                    print('Target updated')
+
+                obs_old = obs_new
+
+                # Reinitializing
+                if done:
+                    break
+
+
+
+
+            end_time = time.time()
+            total_rewards.append(r)
+
+            # Completion status
+            percent = round((episode+1)/episodes*100,2)
+            duration = round(end_time - start_time, 2) #in sec
+            remaining_est = (episodes-episode) * duration
+
+            if episode%100 ==0:
+                print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
+                print(self.exploration_rate)
+            save_video(
+                            env.render(),
+                            f"{today}__{type(self).__name__}_train_{CFG.episodes}episodes__{CFG.max_steps}steps",
+                            fps=env.metadata["render_fps"],
+                            step_starting_index=step_starting_index,
+                            episode_index=episode,
+                            name_prefix = f""
+                        )
+            print('video saved ',episode,step_starting_index)
+
+            step_starting_index =step + 1
+            episode_index += 1
+
+        return max(total_rewards)
+
+
+
+    def evaluate(self, number_of_steps, recording):
+        if recording==False:
+            input("Press enter to see validation ")
+            env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
+            obs_old, info = env.reset()
+            terminated = False
+
+            for step in range(number_of_steps):
+                if terminated :
+                    obs_old, info = env.reset()
+                action = self.get(obs_old, env.action_space, evaluating=True)
+                obs_new, reward, terminated, truncated, info = env.step(action)
+
+            obs_old = obs_new
+
+        else :
+            input("Press enter to see validation ")
+            env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='rgb_array_list')
+            obs_old, info = env.reset()
+            episode_index = 0
+            step_starting_index =0
+            terminated = False
+
+            for step in range(number_of_steps):
+
+                if terminated :
+                    print(episode_index)
+                    if episode_index%CFG.episodes_recording_freq==0:
+
+
+                        save_video(
+                            env.render(),
+                            f"{today}__{type(self).__name__}____{number_of_steps}steps",
+                            fps=env.metadata["render_fps"],
+                            step_starting_index=step_starting_index,
+                            episode_index=episode_index,
+                            name_prefix = f""
+                        )
+                        print('video saved')
+
+                    step_starting_index =step + 1
+                    episode_index += 1
+
+                    obs_old, info = env.reset()
+
+                action = self.get(obs_old, env.action_space, evaluating=True)
+
+                obs_new, reward, terminated, truncated, _ = env.step(action)
+
+                obs_old = obs_new
+            print('video saved')
