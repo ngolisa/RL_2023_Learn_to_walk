@@ -17,3 +17,9 @@ torch
 
 moviepy
 ffmpy
+
+
+tensorflow
+
+
+stable-baselines3

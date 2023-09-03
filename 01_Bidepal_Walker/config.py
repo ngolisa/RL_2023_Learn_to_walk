@@ -23,7 +23,7 @@ class Configuration:
         self.sync_every = 100000
 
         self.max_steps = 300
-        self.episodes = 20
+        self.episodes = 2000
 
         # Agent learning parameters
         self.exploration_rate = .9
