@@ -81,10 +81,11 @@ class DQNAgent(Agent):
         """
         Initializing model and parameters
         """
-        self.net = model.DQN(obs_size, action_size)
+        self.net = model.DQN(obs_size, action_size).to(CFG.device)
         self.opt = torch.optim.Adam(params=self.net.parameters(), lr=CFG.learning_rate)
-        self.target = model.DQN(obs_size, action_size)
+        self.target = model.DQN(obs_size, action_size).to(CFG.device)
         self.target.load_state_dict(self.net.state_dict())
+        self.target.to(CFG.device)
         self.time_step = 0
         self.start_expl = CFG.exploration_rate
         self.exploration_rate = CFG.exploration_rate
@@ -99,7 +100,12 @@ class DQNAgent(Agent):
         """
         # Evaluating agent means rely on learnt behavior (no randomness)
         if evaluating:
-            self.exploration_rate=0
+            self.exploration_rate=.1
+
+        obs_new = torch.tensor(obs_new).to(CFG.device)
+        obs_new = torch.permute(obs_new, (2,0,1))
+        obs_new = obs_new[None, :]
+        #print(obs_new)
 
 
         # Explore : Returns a random action with p = exploration_rate
@@ -109,8 +115,10 @@ class DQNAgent(Agent):
         # Exploit : Otherwise, returns the best choice according to the DQN
         else :
             with torch.no_grad():
-                action = torch.argmax(self.net(torch.tensor(obs_new)))
-                what_to_do = action.numpy()
+                action = torch.argmax(self.net(obs_new))
+                what_to_do = action.cpu().numpy()
+                if evaluating:
+                    print(what_to_do)
 
 
         # decrease exploration_rate
@@ -118,7 +126,7 @@ class DQNAgent(Agent):
 
         #self.exploration_rate *= self.exploration_rate_decay
 
-        self.exploration_rate = np.cos(self.time_step/(CFG.episodes*CFG.max_steps/3)*np.pi/2)
+        self.exploration_rate = 1-self.time_step/(CFG.episodes*CFG.max_steps)
         self.exploration_rate = max(self.exploration_rate_min, self.exploration_rate)
 
         self.time_step += 1
@@ -133,21 +141,41 @@ class DQNAgent(Agent):
         """
         dic_learn = {}
 
+        obs_old = torch.permute(obs_old, (0,3,1,2))
+        obs_new = torch.permute(obs_new, (0,3,1,2))
+
+
+
         # Get y_pred
-        out = self.net(obs_old)
+
+        out = torch.argmax(self.net(obs_old),dim=1)
+
+        #print(out)
 
         terminated = terminated.long()
 
 
+        # print(rwd.shape)
+        # print(terminated.shape)
+        # print(rwd)
+
+        y_target = torch.argmax(self.target(obs_new), dim=1)
+
         # Get y_max from target
         with torch.no_grad():
-            exp = rwd + (1 - terminated) * CFG.gamma * self.target(obs_new)
+            exp = rwd + (1 - terminated) * CFG.gamma * y_target
 
+        #print(torch.abs(out - exp))
         # Compute loss
-        loss = torch.square(out - exp).mean()
+        loss = F.smooth_l1_loss(out,exp)
+        # loss = torch.square(out - exp).mean()
+        loss.requires_grad_()
+
+        # print(loss)
+        print(f'loss: {loss}')
         # loss = torch.nn.MSELoss(out,exp)
 
-        # loss = torch.nn.SmoothL1Loss(out,exp)
+
 
         # dic_learn['obs_old'] = obs_old
 
@@ -159,7 +187,7 @@ class DQNAgent(Agent):
         # Gradient descent updates weight in the network to minimize loss
         self.opt.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.net.parameters(),100)
+        torch.nn.utils.clip_grad_norm_(self.net.parameters(),50)
         self.opt.step()
 
 
@@ -172,7 +200,9 @@ class DQNAgent(Agent):
         for episode in range(episodes):
 
             if episode %render_every == 0:
-                env = gym.make("CarRacing-v2", continuous=False, render_mode='human')
+                self.evaluate(300,False)
+                env = gym.make("CarRacing-v2", continuous=False)
+
             else :
                 env = gym.make("CarRacing-v2", continuous=False)
 
@@ -231,7 +261,7 @@ class DQNAgent(Agent):
 
             if episode%1 ==0:
                 print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
-                print(self.exploration_rate)
+                print(f'epsilon : {self.exploration_rate}')
         print(self.info)
         return max(total_rewards)
 
@@ -246,7 +276,7 @@ class DQNAgent(Agent):
         for episode in range(episodes):
 
 
-            env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='rgb_array_list')
+            env = gym.make("CarRacing-v2", continuous=False, render_mode='rgb_array_list')
 
             episode_index = 0
 
@@ -327,8 +357,8 @@ class DQNAgent(Agent):
 
     def evaluate(self, number_of_steps, recording):
         if recording==False:
-            input("Press enter to see validation ")
-            env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
+            #input("Press enter to see validation ")
+            env = gym.make("CarRacing-v2", continuous=False, render_mode='human')
             obs_old, info = env.reset()
             terminated = False
 
@@ -338,11 +368,12 @@ class DQNAgent(Agent):
                 action = self.get(obs_old, env.action_space, evaluating=True)
                 obs_new, reward, terminated, truncated, info = env.step(action)
 
+
             obs_old = obs_new
 
         else :
             input("Press enter to see validation ")
-            env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='rgb_array_list')
+            env = gym.make("CarRacing-v2", continuous=False, render_mode='rgb_array_list')
             obs_old, info = env.reset()
             episode_index = 0
             step_starting_index =0

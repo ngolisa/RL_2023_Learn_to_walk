@@ -27,12 +27,19 @@ import wrapper
 #     print("GPU is not available, using CPU instead")
 
 
-env = gym.make("BipedalWalker-v3",hardcore=False)
+env = gym.make("CarRacing-v2", continuous=False, render_mode='human')
+
+# env.reset()
+# for i in range(200):
+#     action = env.action_space.sample()
+#     env.step(3.5)
+#     print(action)
+
 
 
 # # 1. Initializing agent
 print('initializing agent')
-agent = DQNAgent(env.observation_space.shape[0], env.action_space.shape[0])
+agent = DQNAgent(3, env.action_space.shape)
 print(type(agent).__name__)
 
 print('______')
@@ -68,7 +75,7 @@ print('______')
 
 # 1. Evaluation
 print('evaluating model (opt:recording)')
-
+input('evaluate')
 number_of_steps = 300
 recording = False
 agent.evaluate(number_of_steps,recording)

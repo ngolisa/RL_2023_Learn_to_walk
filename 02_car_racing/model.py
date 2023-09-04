@@ -10,6 +10,7 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
 
         self.layer1 = nn.Conv2d(n_observations, 16, 4)
+        self.layer15 = nn.MaxPool2d(2)
         self.layer2 = nn.Conv2d(16, 32, 3)
         self.layer3 = nn.MaxPool2d(2)
         self.layer4 = nn.Conv2d(32, 64, 3)
@@ -17,14 +18,16 @@ class DQN(nn.Module):
         self.layer6 = nn.Conv2d(64, 128, 2)
         self.layer7 = nn.MaxPool2d(2)
         self.layer8 = nn.Flatten()
-        self.layer9 = nn.Linear(self.layer3.end_dim, 128)
-        self.layer10 = nn.Softmax(128, 5)
+        self.layer9 = nn.Linear(2048, 1024)
+        self.layer95 = nn.Linear(1024, 256)
+        self.layer10 = nn.Linear(256,5)
 
 
     def forward(self, states):
         """Forward pass."""
-        x = F.normalize(states)
+        x = states /255
         x = F.relu(self.layer1(x))
+        x = self.layer15(x)
         x = F.relu(self.layer2(x))
         x = self.layer3(x)
         x = F.relu(self.layer4(x))
@@ -33,4 +36,5 @@ class DQN(nn.Module):
         x = self.layer7(x)
         x = self.layer8(x)
         x = F.relu(self.layer9(x))
-        return self.layer10(x)
+        x = F.relu(self.layer95(x))
+        return F.softmax(self.layer10(x))

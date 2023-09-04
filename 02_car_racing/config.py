@@ -16,33 +16,33 @@ class Configuration:
         """
         Declare types but do not instantiate anything
         """
-        self.learning_rate = 10**(-4)
+        self.learning_rate = 10**(-3)
         self.gamma = 0.9
-        self.buffer_size = 256
-        self.batch_size = 32
+        self.buffer_size = 1024
+        self.batch_size = 256
 
-        self.sync_every = 10000
+        self.sync_every = 60000
 
         self.max_steps = 300
-        self.episodes = 20
+        self.episodes = 2000
 
         # Agent learning parameters
-        self.exploration_rate = 1
-        self.exploration_rate_min = .05
+        self.exploration_rate = .9
+        self.exploration_rate_min = 0.05
         self.exploration_rate_decay = .999999
 
         self.episodes_recording_freq = 1
 
-        # if torch.cuda.is_available():
-        #     ans = input("GPU available, would you like to use it ? (y/n)")
-        #     if ans.lower()=='y':
-        #         self.device = torch.device("cuda")
-        #         print("GPU is available and being used")
-        #     else :
-        #         self.device = torch.device("cpu")
-        #         print("CPU is used")
-        # else:
-        #     self.device = torch.device("cpu")
-        #     print("GPU is not available, using CPU instead")
+        if torch.cuda.is_available():
+            ans = input("GPU available, would you like to use it ? (y/n)")
+            if ans.lower()=='y':
+                self.device = torch.device("cuda")
+                print("GPU is available and being used")
+            else :
+                self.device = torch.device("cpu")
+                print("CPU is used")
+        else:
+            self.device = torch.device("cpu")
+            print("GPU is not available, using CPU instead")
 
 CFG = Configuration()
