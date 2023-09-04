@@ -44,8 +44,8 @@ print(type(agent).__name__)
 total_rewards = []
 for episode in range(episodes):
 
-    if episode %100 == 0:
-        env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
+    if episode %1000 == 0:
+        env = gym.make("BipedalWalker-v3",hardcore=False)#, render_mode='human')
     else :
         env = gym.make("BipedalWalker-v3",hardcore=False)
 
@@ -58,6 +58,7 @@ for episode in range(episodes):
     obs_old, _ = env.reset()
 
     env = wrapper.RewardWrapper(env)
+
 
     for step in range(max_steps):
 
@@ -93,7 +94,6 @@ for episode in range(episodes):
         if done:
             break
 
-
     end_time = time.time()
     total_rewards.append(r)
 
@@ -105,6 +105,20 @@ for episode in range(episodes):
     if episode%100 ==0:
         print(f'{percent} % done | duration : {duration} sec | estim left : {remaining_est} sec')
         print(agent.exploration_rate)
+
+        env = gym.make("BipedalWalker-v3",hardcore=False, render_mode='human')
+        obs_old, info = env.reset()
+
+        for step in range(500):
+            action = agent.get(obs_old, env.action_space, evaluating=True)
+
+            obs_new, reward, terminated, truncated, _ = env.step(action)
+
+            obs_old = obs_new
+            if terminated:
+                break
+
+
 
 #Computing best rewards
 best_reward = max(total_rewards)
@@ -125,20 +139,6 @@ episode_index = 0
 step_starting_index =0
 
 for step in range(1000):
-    # if terminated :
-    #     # save_video(
-    #     #     env.render(),
-    #     #     "videos-bidepal",
-    #     #     fps=env.metadata["render_fps"],
-    #     #     step_starting_index=step_starting_index,
-    #     #     episode_index=episode_index,
-    #     #     name_prefix = f"{type(agent).__name__}__{CFG.episodes}episodes__{CFG.max_steps}steps"
-    #     # )
-    #     episode_index += 1
-    #     step_starting_index = step+1
-
-    #     obs_old, info = env.reset()
-
     action = agent.get(obs_old, env.action_space, evaluating=True)
 
     obs_new, reward, terminated, truncated, _ = env.step(action)

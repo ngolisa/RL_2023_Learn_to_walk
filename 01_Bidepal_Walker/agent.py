@@ -77,6 +77,7 @@ class DQNAgent(Agent):
         self.target = model.DQN(obs_size, action_size)
         self.target.load_state_dict(self.net.state_dict())
         self.time_step = 0
+        self.start_expl = CFG.exploration_rate
         self.exploration_rate = CFG.exploration_rate
         self.exploration_rate_min = CFG.exploration_rate_min
         self.exploration_rate_decay = CFG.exploration_rate_decay
@@ -103,7 +104,11 @@ class DQNAgent(Agent):
 
 
         # decrease exploration_rate
-        self.exploration_rate *= self.exploration_rate_decay
+        # self.exploration_rate = self.start_expl*(1-(self.time_step/(CFG.episodes*CFG.max_steps/4))**2)**.5
+
+        #self.exploration_rate *= self.exploration_rate_decay
+
+        self.exploration_rate = np.cos(self.time_step/(CFG.episodes*CFG.max_steps/3)*np.pi/2)
         self.exploration_rate = max(self.exploration_rate_min, self.exploration_rate)
 
         self.time_step += 1
@@ -129,7 +134,7 @@ class DQNAgent(Agent):
             exp = rwd + (1 - terminated) * CFG.gamma * self.target(obs_new)
 
         # Compute loss
-        loss = torch.square(out - exp).mean()
+        loss = torch.abs(out - exp).mean()
 
         # Backward propagation
         # Gradient descent updates weight in the network to minimize loss

@@ -15,20 +15,20 @@ class Configuration:
         """
         Declare types but do not instantiate anything
         """
-        self.learning_rate = .0001
-        self.gamma = 0.999
+        self.learning_rate = .000001
+        self.gamma = 0.5
         self.buffer_size = 2048
-        self.batch_size = 128
+        self.batch_size = 256
 
-        self.sync_every = 20000
+        self.sync_every = 500000
 
         self.max_steps = 500
-        self.episodes = 100
+        self.episodes = 100000
 
         # Agent learning parameters
-        self.exploration_rate = .9
-        self.exploration_rate_min = 0.05
-        self.exploration_rate_decay = .99999
+        self.exploration_rate = 1
+        self.exploration_rate_min = .05
+        self.exploration_rate_decay = .999999
 
 
 CFG = Configuration()
