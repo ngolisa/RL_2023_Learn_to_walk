@@ -5,6 +5,7 @@ This module defines a singleton-type configuration class that can be used all ac
 """
 
 import random
+import torch
 
 class Configuration:
     """
@@ -15,20 +16,33 @@ class Configuration:
         """
         Declare types but do not instantiate anything
         """
-        self.learning_rate = .000001
-        self.gamma = 0.5
+        self.learning_rate = 10**(-4)
+        self.gamma = 0.9
         self.buffer_size = 2048
         self.batch_size = 256
 
-        self.sync_every = 500000
+        self.sync_every = 100000
 
-        self.max_steps = 500
-        self.episodes = 100000
+        self.max_steps = 300
+        self.episodes = 20
 
         # Agent learning parameters
         self.exploration_rate = 1
         self.exploration_rate_min = .05
         self.exploration_rate_decay = .999999
 
+        self.episodes_recording_freq = 1
+
+        if torch.cuda.is_available():
+            ans = input("GPU available, would you like to use it ? (y/n)")
+            if ans.lower()=='y':
+                self.device = torch.device("cuda")
+                print("GPU is available and being used")
+            else :
+                self.device = torch.device("cpu")
+                print("CPU is used")
+        else:
+            self.device = torch.device("cpu")
+            print("GPU is not available, using CPU instead")
 
 CFG = Configuration()
